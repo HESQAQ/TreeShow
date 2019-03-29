@@ -58,6 +58,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>GdiPlus.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -101,13 +102,17 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="PictureEx.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="ShowDlg.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TreeShow.h" />
     <ClInclude Include="TreeShowDlg.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="PictureEx.cpp" />
+    <ClCompile Include="ShowDlg.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -125,6 +130,7 @@
     <Image Include="res\csdn.ico" />
     <Image Include="res\icon1.ico" />
     <Image Include="res\toolbar1.bmp" />
+    <Image Include="res\toolbar2.bmp" />
     <Image Include="res\TreeShow.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

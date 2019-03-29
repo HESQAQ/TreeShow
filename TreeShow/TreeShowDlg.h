@@ -1,53 +1,73 @@
-
-// TreeShowDlg.h : Í·ÎÄ¼ş
+ï»¿
+// TreeShowDlg.h : å¤´æ–‡ä»¶
 //
 
 #pragma once
 #include "afxcmn.h"
 #include "afxwin.h"
+#include "PictureEx.h"
 
-
-// CTreeShowDlg ¶Ô»°¿ò
+// CTreeShowDlg å¯¹è¯æ¡†
 class CTreeShowDlg : public CDialogEx
 {
-// ¹¹Ôì
+// æ„é€ 
 public:
-	CTreeShowDlg(CWnd* pParent = NULL);	// ±ê×¼¹¹Ôìº¯Êı
+	CTreeShowDlg(CWnd* pParent = NULL);	// æ ‡å‡†æ„é€ å‡½æ•°
 
-// ¶Ô»°¿òÊı¾İ
+// å¯¹è¯æ¡†æ•°æ®
 	enum { IDD = IDD_TREESHOW_DIALOG };
 
 	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV Ö§³Ö
+	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV æ”¯æŒ
 
 
-// ÊµÏÖ
+// å®ç°
 protected:
 	HICON m_hIcon;
 
-	// Éú³ÉµÄÏûÏ¢Ó³Éäº¯Êı
+	// ç”Ÿæˆçš„æ¶ˆæ¯æ˜ å°„å‡½æ•°
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
+	CStringArray pathArray;   //  LixtControlä¸­æ‰€æœ‰itemçš„path
+	int num;                  //  LixtControlä¸­itemæ•°é‡
 	CMenu m_Menu;
 	CToolBar  m_ToolBar;
-	CListCtrl m_list;        //ÁĞ±í¿Ø¼ş IDC_LIST
-	CTreeCtrl m_tree;        //Ê÷ĞÎ¿Ø¼ş IDC_TREE
-	CImageList m_ImageList;  //Í¼ÏñÁĞ±í(ÏàÍ¬´óĞ¡Í¼Ïñ¼¯ºÏ) 
-	HTREEITEM m_hRoot;       //¾ä±ú CTreeCtrlµÄ¸ù½áµã"ÎÒµÄµçÄÔ"
+	CListCtrl m_list;        //åˆ—è¡¨æ§ä»¶ IDC_LIST
+	CTreeCtrl m_tree;        //æ ‘å½¢æ§ä»¶ IDC_TREE
+	CImageList m_ImageList;  //å›¾åƒåˆ—è¡¨(ç›¸åŒå¤§å°å›¾åƒé›†åˆ) 
+	HTREEITEM m_hRoot;       //å¥æŸ„ CTreeCtrlçš„æ ¹ç»“ç‚¹"æˆ‘çš„ç”µè„‘"
+	CStringArray * ReturnCStringArray();
+	CStringArray PathList;
+	int count=0;    //  å†å²è·¯å¾„è®¡æ•°å™¨
+	CString srcPath;   //  å¤åˆ¶/ç§»åŠ¨æ˜¯,é€‰ä¸­çš„itemçš„è·¯å¾„
+	BOOL FLAG=TRUE;         //  å¤åˆ¶/å‰ªåˆ‡æ–‡ä»¶æ ‡å¿—ä½
 protected:
 	
 public:
-	void GetLogicalDrives(HTREEITEM hParent);  //»ñÈ¡Çı¶¯
-	void GetDriveDir(HTREEITEM hParent);       //»ñÈ¡×ÓÏî
+	void GetLogicalDrives(HTREEITEM hParent);  //è·å–é©±åŠ¨
+	void GetDriveDir(HTREEITEM hParent);       //è·å–å­é¡¹
 	afx_msg void OnItemexpandedTree(NMHDR *pNMHDR, LRESULT *pResult);
-	void AddSubDir(HTREEITEM hParent);         //Ìí¼Ó×ÓÄ¿Â¼
-	CString GetFullPath(HTREEITEM hCurrent);   //»ñÈ¡Ê÷ÏîÄ¿È«¸ùÂ·¾¶
+	void AddSubDir(HTREEITEM hParent);         //æ·»åŠ å­ç›®å½•
+	CString GetFullPath(HTREEITEM hCurrent);   //è·å–æ ‘é¡¹ç›®å…¨æ ¹è·¯å¾„
 	afx_msg void OnSelchangedTree(NMHDR *pNMHDR, LRESULT *pResult);
+	void showListControl(CString path);
 	CStatic m_PicShow;
 	afx_msg void OnNMRClickList(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnNMClickList(NMHDR *pNMHDR, LRESULT *pResult);
+	void OnNMDblclkList(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnBnClickedButton1();
+
+	afx_msg void OnOpenFile1();
+	afx_msg void OnLeft1();
+	afx_msg void OnRight1();
+	afx_msg void OnSelectmenuShow();
+	afx_msg void OnSelectmenuCopy();
+	afx_msg void OnSelectmenuPaste();
+	BOOL CopyDirectory(CString strSrcPath, CString strDestPath);
+	afx_msg void OnSelectmenuShear();
+	afx_msg void OnSelectmenuDelete();
 };

@@ -1,5 +1,5 @@
-
-// TreeShowDlg.cpp : ÊµÏÖÎÄ¼ş
+ï»¿
+// TreeShowDlg.cpp : å®ç°æ–‡ä»¶
 //
 
 #include "stdafx.h"
@@ -7,25 +7,28 @@
 #include "TreeShowDlg.h"
 #include "afxdialogex.h"
 #include "resource.h"
+#include "ShowDlg.h"
+#include <gdiplus.h>
+using namespace Gdiplus;
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
-
-
-// ÓÃÓÚÓ¦ÓÃ³ÌĞò¡°¹ØÓÚ¡±²Ëµ¥ÏîµÄ CAboutDlg ¶Ô»°¿ò
+#define THUMBNAIL_WIDTH     100
+#define THUMBNAIL_HEIGHT    75
+// ç”¨äºåº”ç”¨ç¨‹åºâ€œå…³äºâ€èœå•é¡¹çš„ CAboutDlg å¯¹è¯æ¡†
 
 class CAboutDlg : public CDialogEx
 {
 public:
 	CAboutDlg();
 
-	// ¶Ô»°¿òÊı¾İ
+	// å¯¹è¯æ¡†æ•°æ®
 	enum { IDD = IDD_ABOUTBOX };
 
 protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV Ö§³Ö
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV æ”¯æŒ
 
-														// ÊµÏÖ
+														// å®ç°
 protected:
 	DECLARE_MESSAGE_MAP()
 };
@@ -43,7 +46,7 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
 
-// CTreeShowDlg ¶Ô»°¿ò
+// CTreeShowDlg å¯¹è¯æ¡†
 
 
 CTreeShowDlg::CTreeShowDlg(CWnd* pParent /*=NULL*/)
@@ -66,34 +69,58 @@ BEGIN_MESSAGE_MAP(CTreeShowDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_NOTIFY(TVN_ITEMEXPANDED, IDC_TREE, &CTreeShowDlg::OnItemexpandedTree)
 	ON_NOTIFY(TVN_SELCHANGED, IDC_TREE, &CTreeShowDlg::OnSelchangedTree)
-//	ON_NOTIFY(NM_CLICK, IDC_LIST, &CTreeShowDlg::OnClickList)
 	ON_NOTIFY(NM_RCLICK, IDC_LIST, &CTreeShowDlg::OnNMRClickList)
 	ON_NOTIFY(NM_CLICK, IDC_LIST, &CTreeShowDlg::OnNMClickList)
+	ON_NOTIFY(NM_DBLCLK, IDC_LIST, &CTreeShowDlg::OnNMDblclkList)
+	ON_BN_CLICKED(IDC_BUTTON1, &CTreeShowDlg::OnBnClickedButton1)
+	ON_COMMAND(ID_OPEN_FILE_1, &CTreeShowDlg::OnOpenFile1)
+	ON_COMMAND(ID_LEFT_1, &CTreeShowDlg::OnLeft1)
+	ON_COMMAND(ID_RIGHT_1, &CTreeShowDlg::OnRight1)
+	ON_COMMAND(ID_SELECTMENU_1, &CTreeShowDlg::OnSelectmenuShow)
+	ON_COMMAND(ID_SELECTMENU_2, &CTreeShowDlg::OnSelectmenuCopy)
+	ON_COMMAND(ID_SELECTMENU_3, &CTreeShowDlg::OnSelectmenuPaste)
+	ON_COMMAND(ID_SELECTMENU_4, &CTreeShowDlg::OnSelectmenuShear)
+	ON_COMMAND(ID_SELECTMENU_DEL, &CTreeShowDlg::OnSelectmenuDelete)
 END_MESSAGE_MAP()
 
 
-// CTreeShowDlg ÏûÏ¢´¦Àí³ÌĞò
+// CTreeShowDlg æ¶ˆæ¯å¤„ç†ç¨‹åº
 
 BOOL CTreeShowDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
-	// ½«¡°¹ØÓÚ...¡±²Ëµ¥ÏîÌí¼Óµ½ÏµÍ³²Ëµ¥ÖĞ¡£
+	// å°†â€œå…³äº...â€èœå•é¡¹æ·»åŠ åˆ°ç³»ç»Ÿèœå•ä¸­ã€‚
+	//  åˆå§‹åŒ–CListControl
+	//------------------------------------------------------------------------------
+	CRect rect;
+
+	// è·å–ç¼–ç¨‹è¯­è¨€åˆ—è¡¨è§†å›¾æ§ä»¶çš„ä½ç½®å’Œå¤§å°   
+	m_list.GetClientRect(&rect);
+
+	// ä¸ºåˆ—è¡¨è§†å›¾æ§ä»¶æ·»åŠ å…¨è¡Œé€‰ä¸­å’Œæ …æ ¼é£æ ¼   
+	m_list.InsertColumn(0, _T(" "), LVCFMT_IMAGE, rect.Width(), 0);
+	m_list.InsertColumn(1, _T("name"), LVCFMT_CENTER, 0, 1);
+	m_list.InsertColumn(2, _T("path"), LVCFMT_CENTER, 0, 2);
+	m_list.InsertColumn(3,_T("ParentPath"), LVCFMT_CENTER,0,3);
+	m_list.InsertColumn(4, _T("size"), LVCFMT_CENTER, 0, 4);
+	m_list.SetExtendedStyle(m_list.GetExtendedStyle() | LVS_EX_FULLROWSELECT );//  åˆ é™¤  | LVS_EX_GRIDLINES   ä¸æ˜¾ç¤ºç½‘æ ¼çº¿
+	//------------------------------------------------------------------------------
 	//-----------------------------------------------------------------------------
 	m_Menu.LoadMenu(IDR_MENU1);  //  IDR_MENU1
 	SetMenu(&m_Menu);
 	if (!m_ToolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_ALIGN_TOP | CBRS_GRIPPER | CBRS_TOOLTIPS) ||
-		!m_ToolBar.LoadToolBar(IDR_TOOLBAR1))
+		!m_ToolBar.LoadToolBar(IDR_TOOLBAR2))
 	{
-		TRACE0("Î´ÄÜ´´½¨¹¤¾ßÀ¸\n");
-		AfxMessageBox(_T("Î´ÄÜ´´½¨¹¤¾ßÀ¸\n"));
-		return FALSE;      // Î´ÄÜ´´½¨  
+		TRACE0("æœªèƒ½åˆ›å»ºå·¥å…·æ \n");
+		AfxMessageBox(_T("æœªèƒ½åˆ›å»ºå·¥å…·æ \n"));
+		return FALSE;      // æœªèƒ½åˆ›å»º  
 	}
 	m_ToolBar.ShowWindow(SW_SHOW);
-	//¿Ø¼şÌõ¶¨Î»  
+	//æ§ä»¶æ¡å®šä½  
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
 	//------------------------------------------------------------------
-	// IDM_ABOUTBOX ±ØĞëÔÚÏµÍ³ÃüÁî·¶Î§ÄÚ¡£
+	// IDM_ABOUTBOX å¿…é¡»åœ¨ç³»ç»Ÿå‘½ä»¤èŒƒå›´å†…ã€‚
 	ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
 	ASSERT(IDM_ABOUTBOX < 0xF000);
 
@@ -111,22 +138,22 @@ BOOL CTreeShowDlg::OnInitDialog()
 		}
 	}
 
-	// ÉèÖÃ´Ë¶Ô»°¿òµÄÍ¼±ê¡£µ±Ó¦ÓÃ³ÌĞòÖ÷´°¿Ú²»ÊÇ¶Ô»°¿òÊ±£¬¿ò¼Ü½«×Ô¶¯
-	//  Ö´ĞĞ´Ë²Ù×÷
-	SetIcon(m_hIcon, TRUE);			// ÉèÖÃ´óÍ¼±ê
-	SetIcon(m_hIcon, FALSE);		// ÉèÖÃĞ¡Í¼±ê
+	// è®¾ç½®æ­¤å¯¹è¯æ¡†çš„å›¾æ ‡ã€‚å½“åº”ç”¨ç¨‹åºä¸»çª—å£ä¸æ˜¯å¯¹è¯æ¡†æ—¶ï¼Œæ¡†æ¶å°†è‡ªåŠ¨
+	//  æ‰§è¡Œæ­¤æ“ä½œ
+	SetIcon(m_hIcon, TRUE);			// è®¾ç½®å¤§å›¾æ ‡
+	SetIcon(m_hIcon, FALSE);		// è®¾ç½®å°å›¾æ ‡
 
-									// TODO: ÔÚ´ËÌí¼Ó¶îÍâµÄ³õÊ¼»¯´úÂë
-	m_ImageList.Create(32, 32, ILC_COLOR32, 10, 30);     //´´½¨Í¼ÏñĞòÁĞCImageList¶ÔÏó 
-	HICON hIcon = theApp.LoadIcon(IDI_ICON1);        //Í¼±ê¾ä±ú
-	m_ImageList.Add(hIcon);                          //Í¼±êÌí¼Óµ½Í¼ÏñĞòÁĞ
-	m_list.SetImageList(&m_ImageList, LVSIL_NORMAL);  //ÎªÊ÷ĞÎ¿Ø¼şÉèÖÃÍ¼ÏñĞòÁĞ   
+	// TODO: åœ¨æ­¤æ·»åŠ é¢å¤–çš„åˆå§‹åŒ–ä»£ç 
+	m_ImageList.Create(32, 32, ILC_COLOR32, 10, 30);     //åˆ›å»ºå›¾åƒåºåˆ—CImageListå¯¹è±¡ 
+	HICON hIcon = theApp.LoadIcon(IDI_ICON1);        //å›¾æ ‡å¥æŸ„
+	m_ImageList.Add(hIcon);                          //å›¾æ ‡æ·»åŠ åˆ°å›¾åƒåºåˆ—
+	m_list.SetImageList(&m_ImageList, LVSIL_NORMAL);  //ä¸ºæ ‘å½¢æ§ä»¶è®¾ç½®å›¾åƒåºåˆ— 
 	m_tree.ModifyStyle(NULL, TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_EDITLABELS);
-	m_hRoot = m_tree.InsertItem("ÎÒµÄµçÄÔ");         //²åÈë¸ù½Úµã
-	GetLogicalDrives(m_hRoot);                       //×Ô¶¨Òåº¯Êı »ñÈ¡Çı¶¯
-	GetDriveDir(m_hRoot);                            //×Ô¶¨Òåº¯Êı »ñÈ¡Çı¶¯×ÓÏî
-	m_tree.Expand(m_hRoot, TVE_EXPAND);               //Õ¹¿ª»òÕÛµş×ÓÏîÁĞ±í TVE_EXPANDÕ¹¿ªÁĞ±í 
-	return TRUE;  // ³ı·Ç½«½¹µãÉèÖÃµ½¿Ø¼ş£¬·ñÔò·µ»Ø TRUE
+	m_hRoot = m_tree.InsertItem("æˆ‘çš„ç”µè„‘");         //æ’å…¥æ ¹èŠ‚ç‚¹
+	GetLogicalDrives(m_hRoot);                       //è‡ªå®šä¹‰å‡½æ•° è·å–é©±åŠ¨
+	GetDriveDir(m_hRoot);                            //è‡ªå®šä¹‰å‡½æ•° è·å–é©±åŠ¨å­é¡¹
+	m_tree.Expand(m_hRoot, TVE_EXPAND);               //å±•å¼€æˆ–æŠ˜å å­é¡¹åˆ—è¡¨ TVE_EXPANDå±•å¼€åˆ—è¡¨ 
+	return TRUE;  // é™¤éå°†ç„¦ç‚¹è®¾ç½®åˆ°æ§ä»¶ï¼Œå¦åˆ™è¿”å› TRUE
 }
 
 
@@ -144,19 +171,19 @@ void CTreeShowDlg::OnSysCommand(UINT nID, LPARAM lParam)
 	}
 }
 
-// Èç¹ûÏò¶Ô»°¿òÌí¼Ó×îĞ¡»¯°´Å¥£¬ÔòĞèÒªÏÂÃæµÄ´úÂë
-//  À´»æÖÆ¸ÃÍ¼±ê¡£¶ÔÓÚÊ¹ÓÃÎÄµµ/ÊÓÍ¼Ä£ĞÍµÄ MFC Ó¦ÓÃ³ÌĞò£¬
-//  Õâ½«ÓÉ¿ò¼Ü×Ô¶¯Íê³É¡£
+// å¦‚æœå‘å¯¹è¯æ¡†æ·»åŠ æœ€å°åŒ–æŒ‰é’®ï¼Œåˆ™éœ€è¦ä¸‹é¢çš„ä»£ç 
+//  æ¥ç»˜åˆ¶è¯¥å›¾æ ‡ã€‚å¯¹äºä½¿ç”¨æ–‡æ¡£/è§†å›¾æ¨¡å‹çš„ MFC åº”ç”¨ç¨‹åºï¼Œ
+//  è¿™å°†ç”±æ¡†æ¶è‡ªåŠ¨å®Œæˆã€‚
 
 void CTreeShowDlg::OnPaint()
 {
 	if (IsIconic())
 	{
-		CPaintDC dc(this); // ÓÃÓÚ»æÖÆµÄÉè±¸ÉÏÏÂÎÄ
+		CPaintDC dc(this); // ç”¨äºç»˜åˆ¶çš„è®¾å¤‡ä¸Šä¸‹æ–‡
 
 		SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
 
-		// Ê¹Í¼±êÔÚ¹¤×÷Çø¾ØĞÎÖĞ¾ÓÖĞ
+		// ä½¿å›¾æ ‡åœ¨å·¥ä½œåŒºçŸ©å½¢ä¸­å±…ä¸­
 		int cxIcon = GetSystemMetrics(SM_CXICON);
 		int cyIcon = GetSystemMetrics(SM_CYICON);
 		CRect rect;
@@ -164,7 +191,7 @@ void CTreeShowDlg::OnPaint()
 		int x = (rect.Width() - cxIcon + 1) / 2;
 		int y = (rect.Height() - cyIcon + 1) / 2;
 
-		// »æÖÆÍ¼±ê
+		// ç»˜åˆ¶å›¾æ ‡
 		dc.DrawIcon(x, y, m_hIcon);
 	}
 	else
@@ -173,88 +200,88 @@ void CTreeShowDlg::OnPaint()
 	}
 }
 
-//µ±ÓÃ»§ÍÏ¶¯×îĞ¡»¯´°¿ÚÊ±ÏµÍ³µ÷ÓÃ´Ëº¯ÊıÈ¡µÃ¹â±ê
-//ÏÔÊ¾¡£
+//å½“ç”¨æˆ·æ‹–åŠ¨æœ€å°åŒ–çª—å£æ—¶ç³»ç»Ÿè°ƒç”¨æ­¤å‡½æ•°å–å¾—å…‰æ ‡
+//æ˜¾ç¤ºã€‚
 HCURSOR CTreeShowDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
 //*******************************************************
-//Ìí¼Ó×Ô¶¨Òåº¯Êı
+//æ·»åŠ è‡ªå®šä¹‰å‡½æ•°
 
-//º¯Êı¹¦ÄÜ:»ñÈ¡Çı¶¯Æ÷ ²ÎÊı:Â·¾¶Ãû                       
+//å‡½æ•°åŠŸèƒ½:è·å–é©±åŠ¨å™¨ å‚æ•°:è·¯å¾„å                       
 void CTreeShowDlg::GetLogicalDrives(HTREEITEM hParent)
 {
-	//»ñÈ¡ÏµÍ³·ÖÇøÇı¶¯Æ÷×Ö·û´®ĞÅÏ¢
-	size_t szAllDriveStrings = GetLogicalDriveStrings(0, NULL);           //Çı¶¯Æ÷×Ü³¤¶È
-	char *pDriveStrings = new char[szAllDriveStrings + sizeof(_T(""))];  //½¨Á¢Êı×é
+	//è·å–ç³»ç»Ÿåˆ†åŒºé©±åŠ¨å™¨å­—ç¬¦ä¸²ä¿¡æ¯
+	size_t szAllDriveStrings = GetLogicalDriveStrings(0, NULL);           //é©±åŠ¨å™¨æ€»é•¿åº¦
+	char *pDriveStrings = new char[szAllDriveStrings + sizeof(_T(""))];  //å»ºç«‹æ•°ç»„
 	GetLogicalDriveStrings(szAllDriveStrings, pDriveStrings);
-	size_t szDriveString = strlen(pDriveStrings);                        //Çı¶¯´óĞ¡
+	size_t szDriveString = strlen(pDriveStrings);                        //é©±åŠ¨å¤§å°
 	while (szDriveString > 0)
 	{
-		m_tree.InsertItem(pDriveStrings, hParent);       //ÔÚ¸¸½ÚµãhParentÌí¼ÓÅÌ·û
-		pDriveStrings += szDriveString + 1;             //pDriveStrings¼´C:\ D:\ E:\ÅÌ
+		m_tree.InsertItem(pDriveStrings, hParent);       //åœ¨çˆ¶èŠ‚ç‚¹hParentæ·»åŠ ç›˜ç¬¦
+		pDriveStrings += szDriveString + 1;             //pDriveStringså³C:\ D:\ E:\ç›˜
 		szDriveString = strlen(pDriveStrings);
 	}
 }
 
-//º¯Êı¹¦ÄÜ:»ñÈ¡Çı¶¯ÅÌ·ûÏÂËùÓĞ×ÓÏîÎÄ¼ş¼Ğ
+//å‡½æ•°åŠŸèƒ½:è·å–é©±åŠ¨ç›˜ç¬¦ä¸‹æ‰€æœ‰å­é¡¹æ–‡ä»¶å¤¹
 void CTreeShowDlg::GetDriveDir(HTREEITEM hParent)
 {
-	HTREEITEM hChild = m_tree.GetChildItem(hParent);   //»ñÈ¡Ö¸¶¨Î»ÖÃÖĞµÄ×ÓÏî
+	HTREEITEM hChild = m_tree.GetChildItem(hParent);   //è·å–æŒ‡å®šä½ç½®ä¸­çš„å­é¡¹
 	while (hChild)
 	{
-		CString strText = m_tree.GetItemText(hChild);  //¼ìË÷ÁĞ±íÖĞÏîÄ¿ÎÄ×Ö
-		if (strText.Right(1) != "\\")                   //´ÓÓÒ±ß1¿ªÊ¼»ñÈ¡´ÓÓÒÏò×ónCount¸ö×Ö·û
+		CString strText = m_tree.GetItemText(hChild);  //æ£€ç´¢åˆ—è¡¨ä¸­é¡¹ç›®æ–‡å­—
+		if (strText.Right(1) != "\\")                   //ä»å³è¾¹1å¼€å§‹è·å–ä»å³å‘å·¦nCountä¸ªå­—ç¬¦
 			strText += _T("\\");
 		strText += "*.*";
-		//½«µ±Ç°Ä¿Â¼ÏÂÎÄ¼şÃ¶¾Ù²¢InsertItemÊ÷×´ÏÔÊ¾
-		CFileFind file;                                       //¶¨Òå±¾µØÎÄ¼ş²éÕÒ
-		BOOL bContinue = file.FindFile(strText);              //²éÕÒ°üº¬×Ö·û´®µÄÎÄ¼ş
+		//å°†å½“å‰ç›®å½•ä¸‹æ–‡ä»¶æšä¸¾å¹¶InsertItemæ ‘çŠ¶æ˜¾ç¤º
+		CFileFind file;                                       //å®šä¹‰æœ¬åœ°æ–‡ä»¶æŸ¥æ‰¾
+		BOOL bContinue = file.FindFile(strText);              //æŸ¥æ‰¾åŒ…å«å­—ç¬¦ä¸²çš„æ–‡ä»¶
 		while (bContinue)
 		{
-			bContinue = file.FindNextFile();                  //²éÕÒÏÂÒ»¸öÎÄ¼ş
-			if (file.IsDirectory() && !file.IsDots() && !file.IsHidden())          //ÕÒµ½ÎÄ¼şÎªÄÚÈİÇÒ²»Îªµã"."
-				m_tree.InsertItem(file.GetFileName(), hChild); //Ìí¼ÓÅÌ·ûÂ·¾¶ÏÂÊ÷×´ÎÄ¼ş¼Ğ
+			bContinue = file.FindNextFile();                  //æŸ¥æ‰¾ä¸‹ä¸€ä¸ªæ–‡ä»¶
+			if (file.IsDirectory() && !file.IsDots() && !file.IsHidden())          //æ‰¾åˆ°æ–‡ä»¶ä¸ºå†…å®¹ä¸”ä¸ä¸ºç‚¹"."
+				m_tree.InsertItem(file.GetFileName(), hChild); //æ·»åŠ ç›˜ç¬¦è·¯å¾„ä¸‹æ ‘çŠ¶æ–‡ä»¶å¤¹
 		}
-		GetDriveDir(hChild);                                  //µİ¹éµ÷ÓÃ
-		hChild = m_tree.GetNextItem(hChild, TVGN_NEXT);        //»ñÈ¡Ê÷ĞÎ¿Ø¼ş(TVGN_NEXT)ÏÂÒ»ĞÖµÜÏî
+		GetDriveDir(hChild);                                  //é€’å½’è°ƒç”¨
+		hChild = m_tree.GetNextItem(hChild, TVGN_NEXT);        //è·å–æ ‘å½¢æ§ä»¶(TVGN_NEXT)ä¸‹ä¸€å…„å¼Ÿé¡¹
 	}
 }
 
 
-//º¯Êı¹¦ÄÜ:Õ¹¿ªÊÂ¼şº¯Êı
+//å‡½æ•°åŠŸèƒ½:å±•å¼€äº‹ä»¶å‡½æ•°
 void CTreeShowDlg::OnItemexpandedTree(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	LPNMTREEVIEW pNMTreeView = reinterpret_cast<LPNMTREEVIEW>(pNMHDR);
 
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼şÍ¨Öª´¦Àí³ÌĞò´úÂë
-	TVITEM item = pNMTreeView->itemNew;                  //·¢ËÍ\½ÓÊÜ¹ØÓÚÊ÷ĞÎÊÓÍ¼ÏîÄ¿ĞÅÏ¢
+	// TODO: åœ¨æ­¤æ·»åŠ æ§ä»¶é€šçŸ¥å¤„ç†ç¨‹åºä»£ç 
+	TVITEM item = pNMTreeView->itemNew;                  //å‘é€\æ¥å—å…³äºæ ‘å½¢è§†å›¾é¡¹ç›®ä¿¡æ¯
 	if (item.hItem == m_hRoot)
 		return;
-	HTREEITEM hChild = m_tree.GetChildItem(item.hItem);  //»ñÈ¡Ö¸¶¨Î»ÖÃÖĞµÄ×ÓÏî
+	HTREEITEM hChild = m_tree.GetChildItem(item.hItem);  //è·å–æŒ‡å®šä½ç½®ä¸­çš„å­é¡¹
 	while (hChild)
 	{
-		AddSubDir(hChild);                               //Ìí¼Ó×ÓÄ¿Â¼
-		hChild = m_tree.GetNextItem(hChild, TVGN_NEXT);   //»ñÈ¡Ê÷ĞÎ¿Ø¼şTVGN_NEXTÏÂĞÖµÜÏî
+		AddSubDir(hChild);                               //æ·»åŠ å­ç›®å½•
+		hChild = m_tree.GetNextItem(hChild, TVGN_NEXT);   //è·å–æ ‘å½¢æ§ä»¶TVGN_NEXTä¸‹å…„å¼Ÿé¡¹
 	}
 	*pResult = 0;
 }
 
 
-//º¯Êı¹¦ÄÜ:Ìí¼Ó×ÓÄ¿Â¼
+//å‡½æ•°åŠŸèƒ½:æ·»åŠ å­ç›®å½•
 void CTreeShowDlg::AddSubDir(HTREEITEM hParent)
 {
-	CString strPath = GetFullPath(hParent);     //»ñÈ¡È«Â·¾¶
+	CString strPath = GetFullPath(hParent);     //è·å–å…¨è·¯å¾„
 	if (strPath.Right(1) != "\\")
 		strPath += "\\";
 	strPath += "*.*";
 	CFileFind file;
-	BOOL bContinue = file.FindFile(strPath);    //²éÕÒ°üº¬×Ö·û´®µÄÎÄ¼ş
+	BOOL bContinue = file.FindFile(strPath);    //æŸ¥æ‰¾åŒ…å«å­—ç¬¦ä¸²çš„æ–‡ä»¶
 	while (bContinue)
 	{
-		bContinue = file.FindNextFile();        //²éÕÒÏÂÒ»¸öÎÄ¼ş
+		bContinue = file.FindNextFile();        //æŸ¥æ‰¾ä¸‹ä¸€ä¸ªæ–‡ä»¶
 		if (file.IsDirectory() && !file.IsDots() && !file.IsHidden())
 			m_tree.InsertItem(file.GetFileName(), hParent);
 	}
@@ -262,149 +289,114 @@ void CTreeShowDlg::AddSubDir(HTREEITEM hParent)
 
 
 
-//º¯Êı¹¦ÄÜ:»ñÈ¡Ê÷ÏîÄ¿È«¸ùÂ·¾¶
+//å‡½æ•°åŠŸèƒ½:è·å–æ ‘é¡¹ç›®å…¨æ ¹è·¯å¾„
 CString CTreeShowDlg::GetFullPath(HTREEITEM hCurrent)
 {
 	CString strTemp;
 	CString strReturn = "";
 	while (hCurrent != m_hRoot)
 	{
-		strTemp = m_tree.GetItemText(hCurrent);    //¼ìË÷ÁĞ±íÖĞÏîÄ¿ÎÄ×Ö
+		strTemp = m_tree.GetItemText(hCurrent);    //æ£€ç´¢åˆ—è¡¨ä¸­é¡¹ç›®æ–‡å­—
 		if (strTemp.Right(1) != "\\")
 			strTemp += "\\";
 		strReturn = strTemp + strReturn;
-		hCurrent = m_tree.GetParentItem(hCurrent); //·µ»Ø¸¸ÏîÄ¿¾ä±ú
+		hCurrent = m_tree.GetParentItem(hCurrent); //è¿”å›çˆ¶é¡¹ç›®å¥æŸ„
 	}
 	return strReturn;
 }
 
 
-//º¯Êı¹¦ÄÜ:Ñ¡ÖĞÊÂ¼şÏÔÊ¾Í¼±ê
+//å‡½æ•°åŠŸèƒ½:é€‰ä¸­äº‹ä»¶æ˜¾ç¤ºå›¾æ ‡
 void CTreeShowDlg::OnSelchangedTree(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	//LPNMTREEVIEW pNMTreeView = reinterpret_cast<LPNMTREEVIEW>(pNMHDR);
-
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼şÍ¨Öª´¦Àí³ÌĞò´úÂë
+	GetDlgItem(IDC_PIC_SHOW)->ShowWindow(FALSE);   //  å°†PictureControlç¦ç”¨
+	GetDlgItem(IDC_PIC_SHOW)->ShowWindow(TRUE);    //  æ˜¾ç¤ºpicturecontrol
+	// TODO: åœ¨æ­¤æ·»åŠ æ§ä»¶é€šçŸ¥å¤„ç†ç¨‹åºä»£ç 
 	m_list.DeleteAllItems();
 	NM_TREEVIEW* pNMTreeView = (NM_TREEVIEW*)pNMHDR;
 	TVITEM item = pNMTreeView->itemNew;
 	if (item.hItem == m_hRoot)
 		return;
 	CString str = GetFullPath(item.hItem);
+	//  æ·»åŠ å†å²è·¯å¾„
+	PathList.Add(str);
+	count++;
+
+	showListControl(str);
+	*pResult = 0;
+}
+
+void CTreeShowDlg::showListControl(CString path) {
+	m_list.DeleteAllItems();
+	CString str = path;
+	//CString str = _T("C:\\Users\\Public\\Pictures\\Sample Pictures\\");
 	if (str.Right(1) != "\\")
 		str += "\\";
+	//SetDlgItemText(IDC_EDIT1, str);
+	//SetDlgItemText(IDC_STATIC, _T(" "));
 	str += "*.*";
 	CFileFind file;
 	BOOL bContinue = file.FindFile(str);
-	// TODO: Add extra initialization here   
-	//CRect rect;
+	//// TODO: Add extra initialization here   
 
-	//// »ñÈ¡±à³ÌÓïÑÔÁĞ±íÊÓÍ¼¿Ø¼şµÄÎ»ÖÃºÍ´óĞ¡   
-	//m_list.GetClientRect(&rect);
-
-	//// ÎªÁĞ±íÊÓÍ¼¿Ø¼şÌí¼ÓÈ«ĞĞÑ¡ÖĞºÍÕ¤¸ñ·ç¸ñ   
-	//m_list.SetExtendedStyle(m_list.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
-	//m_list.InsertColumn(0, _T(" ") , LVCFMT_CENTER, rect.Width() / 3, 0);
-	//m_list.InsertColumn(1, _T("url"), LVCFMT_CENTER, rect.Width() / 3, 1);
-	//m_list.InsertColumn(1, _T("path"), LVCFMT_CENTER, rect.Width() / 3, 2);
 
 	while (bContinue)
 	{
 		bContinue = file.FindNextFile();
 		if (!file.IsDots() && !file.IsHidden())
 		{
-			/*CString temp = str;
-			int index = temp.Find("*.*");
-			temp.Delete(index, 3);*/
-			/*HICON hIcon = (HICON)::LoadImage(NULL, file.GetFilePath(), IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
-			int i = m_ImageList.Add(hIcon);
-			m_list.InsertItem(i, file.GetFileName(), i);*/
-			////------------------------------------------------------
-			//CBitmap bitmap;
-			//HBITMAP hbitmap;
-			//hbitmap = (HBITMAP)LoadImage(NULL, file.GetFilePath(), IMAGE_BITMAP, 0, 0,
-			//	LR_CREATEDIBSECTION | LR_DEFAULTSIZE | LR_LOADFROMFILE);
-			//bitmap.Attach(hbitmap);
-			//int i = m_ImageList.Add(&bitmap, RGB(0, 128, 128));
-			//m_list.InsertItem(i, file.GetFileName(), i);
-			////------------------------------------------------------
 			SHFILEINFO info;
 			CString temp = str;
 			int index = temp.Find("*.*");
 			temp.Delete(index, 3);
 			SHGetFileInfo(temp + file.GetFileName(), 0, &info, sizeof(&info), SHGFI_DISPLAYNAME | SHGFI_ICON);
 			int i = m_ImageList.Add(info.hIcon);
+			m_list.SetImageList(&m_ImageList, LVSIL_SMALL);
 
-
-			CString path = _T("Hello");
-			int num = path.GetLength();
-			char* result = new char[num + 1];
-			strcpy_s(result, num +1 , path );
-
-			
-
-			m_list.InsertItem(i, info.szDisplayName, i);
-			m_list.SetItemData(i, (DWORD)result);
-
-			/*CString tmp = file.GetFileURL();
-			long PID = _ttol(tmp);
-			DWORD dw = (DWORD)PID;
-			m_list.SetItemData(i, dw);*/
-			
-			
+			int N = m_list.InsertItem(i, info.szDisplayName, i);
+			m_list.SetItemText(N, 1, file.GetFileName());
+			m_list.SetItemText(N, 2, file.GetFilePath());
+			m_list.SetItemText(N, 3, path);
+			CString size;
+			size.Format(_T("%d"),file.GetLength());
+			m_list.SetItemText(N, 4, size);
 		}
 	}
-	*pResult = 0;
+	pathArray.RemoveAll();
+	CString test;
+	num = m_list.GetItemCount();
+	//  æµ‹è¯•
+	//test.Format("%d", num);
+	pathArray.SetSize(num);
+	//SetDlgItemText(IDC_EDIT1, test);
+	for (int i = 0; i < num; i++)
+	{
+		pathArray.SetAt(i, m_list.GetItemText(i, 2));
+	}
+	test.Format("%d", pathArray.GetSize());
+	SetDlgItemText(IDC_EDIT1, test);
 }
 
-//void CTreeShowDlg::OnClickList(NMHDR *pNMHDR, LRESULT *pResult)
-//{
-//	//LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
-//	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼şÍ¨Öª´¦Àí³ÌĞò´úÂë
-//	//m_list.DeleteAllItems();
-//	NM_TREEVIEW* pNMTreeView = (NM_TREEVIEW*)pNMHDR;
-//	TVITEM item = pNMTreeView->itemNew;
-//	if (m_list.GetItemCount() <= 0)
-//	{
-//		return;
-//	}
-//	//Ã»ÓĞÁĞ±»Ñ¡ÖĞ²»ÏÔÊ¾
-//	if (m_list.GetSelectedCount() > 0)
-//	{
-//		//if (item.hItem == m_hRoot)
-//		//	return;
-//		//CString str = GetFullPath(item.hItem);
-//		//CImage image;
-//		//image.Load(str);
-//
-//		////»ñÈ¡Í¼Æ¬¿Í»§ÇøÎ»ÖÃ
-//		//CRect imageRect;
-//		//GetDlgItem(IDC_PIC_SHOW)->GetClientRect(&imageRect);
-//
-//		////CDCÀà¶¨ÒåµÄÊÇÉè±¸ÉÏÏÂÎÄ¶ÔÏóµÄÀà£¬ÓÖ³ÆÉè±¸»·¾³¶ÔÏóÀà¡£¾ßÌåÎÒÒ²²»¶®£¬²îÁËºÜ¶à¸Ğ¾õ¾ÍÊÇ»­Í¼Ê±ĞèÒª
-//		//CDC *picDC = GetDC();
-//		//image.Draw(picDC->m_hDC, imageRect);
-//		//ReleaseDC(picDC);        //ÊÍ·ÅÖ¸Õë
-//	}
-//}
 
 
-//  Ìí¼ÓÓÒ¼ü²Ëµ¥
+//  æ·»åŠ å³é”®èœå•
 void CTreeShowDlg::OnNMRClickList(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼şÍ¨Öª´¦Àí³ÌĞò´úÂë
+	// TODO: åœ¨æ­¤æ·»åŠ æ§ä»¶é€šçŸ¥å¤„ç†ç¨‹åºä»£ç 
+	
 	if (m_list.GetItemCount() <= 0)
 	{
 		return;
 	}
-	//Ã»ÓĞÁĞ±»Ñ¡ÖĞ²»ÏÔÊ¾
+	//æ²¡æœ‰åˆ—è¢«é€‰ä¸­ä¸æ˜¾ç¤º
 	if (m_list.GetSelectedCount() > 0)
 	{
 		CMenu menu, *popup;
 		if (menu.LoadMenu(IDR_MENU2) == NULL)
 		{
-			//¼ÓÔØmenuÎª¿Õ
+			//åŠ è½½menuä¸ºç©º
 			DWORD dwRect = GetLastError();
 			DWORD a = dwRect;
 			return;
@@ -420,48 +412,373 @@ void CTreeShowDlg::OnNMRClickList(NMHDR *pNMHDR, LRESULT *pResult)
 	{
 		return;
 	}
+	
 }
 
 
 void CTreeShowDlg::OnNMClickList(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
-	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼şÍ¨Öª´¦Àí³ÌĞò´úÂë
+	// TODO: åœ¨æ­¤æ·»åŠ æ§ä»¶é€šçŸ¥å¤„ç†ç¨‹åºä»£ç 
 	*pResult = 0;
-	CString strLangName;    // Ñ¡ÔñÓïÑÔµÄÃû³Æ×Ö·û´®   
-	NMLISTVIEW *pNMListView = (NMLISTVIEW*)pNMHDR;
+	CString path;    // é€‰æ‹©çš„æ–‡ä»¶çš„è·¯å¾„   
+	CString name;    //  é€‰æ‹©çš„æ–‡ä»¶çš„åç§°
 
-	if (-1 != pNMListView->iItem)        // Èç¹ûiItem²»ÊÇ-1£¬¾ÍËµÃ÷ÓĞÁĞ±íÏî±»Ñ¡Ôñ   
+	NMLISTVIEW *pNMListView = (NMLISTVIEW*)pNMHDR;
+	int ci = pNMListView->iItem;
+	if (-1 != ci)        // å¦‚æœiItemä¸æ˜¯-1ï¼Œå°±è¯´æ˜æœ‰åˆ—è¡¨é¡¹è¢«é€‰æ‹©   
 	{
 
-		// »ñÈ¡±»Ñ¡ÔñÁĞ±íÏîµÚÒ»¸ö×ÓÏîµÄÎÄ±¾   
-		strLangName = m_list.GetItemText(pNMListView->iItem, 0);
-		//DWORD dw = m_list.GetItemData(pNMListView->iItem);
-		//strLangName.Format(_T("%d"), dw);
-		char* PATH = (char*)m_list.GetItemData(pNMListView->iItem);
-		// ½«Ñ¡ÔñµÄÓïÑÔÏÔÊ¾Óë±à¼­¿òÖĞ   
-		SetDlgItemText(IDC_EDIT1, PATH);
-		//CImage image;
-		//int cx, cy;
-		//CRect imageRect;
-		//image.Load(strLangName);
-		//cx = image.GetWidth();
-		//cy = image.GetHeight();
+		// è·å–è¢«é€‰æ‹©åˆ—è¡¨é¡¹ç¬¬ä¸€ä¸ªå­é¡¹çš„æ–‡æœ¬
+		path = m_list.GetItemText(ci, 2);
+		name = m_list.GetItemText(ci, 1);
+		CString Parentpath = m_list.GetItemText(ci, 3);
+		// å°†é€‰æ‹©çš„è¯­è¨€æ˜¾ç¤ºä¸ç¼–è¾‘æ¡†ä¸­   
+		//SetDlgItemText(IDC_EDIT1, Parentpath);
+		//SetDlgItemText(IDC_STATIC, name);
+		//  åˆ¤æ–­æ˜¯å¦ä¸ºå›¾ç‰‡ï¼Œ
+		if(name.Find(_T(".jpg")) == -1 && name.Find(_T(".bmp")) == -1 && name.Find(_T(".gif")) == -1 && name.Find(_T(".png")) == -1 && name.Find(_T(".ico")) == -1 && name.Find(_T(".mng")) == -1 && name.Find(_T(".pnm")) == -1) {
+			GetDlgItem(IDC_PIC_SHOW)->ShowWindow(FALSE);   //  å°†PictureControlç¦ç”¨
+			GetDlgItem(IDC_PIC_SHOW)->ShowWindow(TRUE);    //  æ˜¾ç¤ºpicturecontrol
+			return;	
+		}
+		else {
+			CImage image;
+			int cx, cy;
+			CRect imageRect;
+			image.Load(path);
+			cx = image.GetWidth();
+			cy = image.GetHeight();
 
-		////»ñÈ¡Í¼Æ¬¿Í»§ÇøÎ»ÖÃ
-		//CWnd *pWnd = NULL;
-		//pWnd = GetDlgItem(IDC_PIC_SHOW);//»ñÈ¡¿Ø¼ş¾ä±ú
-		//// »ñÈ¡Picture Control¿Ø¼şµÄ¿Í»§Çø
-		//pWnd->GetClientRect(&imageRect);
-		//CDC *pDc = NULL;  
-		//pDc = pWnd->GetDC();//»ñÈ¡picture controlµÄDC  
-		////ÉèÖÃÖ¸¶¨Éè±¸»·¾³ÖĞµÄÎ»Í¼À­ÉìÄ£Ê½
-		//int ModeOld=SetStretchBltMode(pDc->m_hDC,STRETCH_HALFTONE); 
-		////´ÓÔ´¾ØĞÎÖĞ¸´ÖÆÒ»¸öÎ»Í¼µ½Ä¿±ê¾ØĞÎ£¬°´Ä¿±êÉè±¸ÉèÖÃµÄÄ£Ê½½øĞĞÍ¼ÏñµÄÀ­Éì»òÑ¹Ëõ
-		//image.StretchBlt(pDc->m_hDC, imageRect,SRCCOPY);
-		//SetStretchBltMode(pDc->m_hDC,ModeOld); 
-		//ReleaseDC(pDc);
+			//è·å–å›¾ç‰‡å®¢æˆ·åŒºä½ç½®
+			CWnd *pWnd = NULL;
+			pWnd = GetDlgItem(IDC_PIC_SHOW);//è·å–æ§ä»¶å¥æŸ„
+											// è·å–Picture Controlæ§ä»¶çš„å®¢æˆ·åŒº
+			pWnd->GetClientRect(&imageRect);
+			CDC *pDc = NULL;
+			pDc = pWnd->GetDC();//è·å–picture controlçš„DC  
+								//è®¾ç½®æŒ‡å®šè®¾å¤‡ç¯å¢ƒä¸­çš„ä½å›¾æ‹‰ä¼¸æ¨¡å¼
+			int ModeOld = SetStretchBltMode(pDc->m_hDC, STRETCH_HALFTONE);
+			//ä»æºçŸ©å½¢ä¸­å¤åˆ¶ä¸€ä¸ªä½å›¾åˆ°ç›®æ ‡çŸ©å½¢ï¼ŒæŒ‰ç›®æ ‡è®¾å¤‡è®¾ç½®çš„æ¨¡å¼è¿›è¡Œå›¾åƒçš„æ‹‰ä¼¸æˆ–å‹ç¼©
+			image.StretchBlt(pDc->m_hDC, imageRect, SRCCOPY);
+			SetStretchBltMode(pDc->m_hDC, ModeOld);
+			ReleaseDC(pDc);
+		}
 		
-	
 	}
 }
+
+//  åŒå‡»äº‹ä»¶
+void CTreeShowDlg::OnNMDblclkList(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	
+	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+	*pResult = 0;
+	CString path;    // é€‰æ‹©çš„æ–‡ä»¶çš„è·¯å¾„   
+	CString name;    //  é€‰æ‹©çš„æ–‡ä»¶çš„åç§°
+	
+
+	//CString test;
+	//int num = m_list.GetItemCount();
+	////  æµ‹è¯•
+	////test.Format("%d", num);
+	//pathArray.SetSize(num);
+	////SetDlgItemText(IDC_EDIT1, test);
+	//for (int i = 0; i < num; i++)
+	//{
+	//	pathArray.SetAt(i,m_list.GetItemText(i, 2));
+	//}
+	//test.Format("%d", pathArray.GetSize());
+	////SetDlgItemText(IDC_EDIT1, test);
+
+
+	NMLISTVIEW *pNMListView = (NMLISTVIEW*)pNMHDR;
+	int ci = pNMListView->iItem;
+	if (-1 != ci)        // å¦‚æœiItemä¸æ˜¯-1ï¼Œå°±è¯´æ˜æœ‰åˆ—è¡¨é¡¹è¢«é€‰æ‹©   
+	{
+
+		// è·å–è¢«é€‰æ‹©åˆ—è¡¨é¡¹ç¬¬ä¸€ä¸ªå­é¡¹çš„æ–‡æœ¬
+		path = m_list.GetItemText(ci, 2);
+		//SetDlgItemText(IDC_EDIT1, path);
+		CFileFind file;
+		BOOL b = file.FindFile(path);
+		file.FindNextFile();
+		CString name = file.GetFileName();
+		if (b && file.IsDirectory()) {
+			//SetDlgItemText(IDC_EDIT1, path);
+			m_list.DeleteAllItems();
+			showListControl(path);
+			//  æ·»åŠ å†å²è·¯å¾„
+			PathList.Add(path);
+			count++;
+		}
+		if (b && !file.IsDirectory()) {
+			if ( name.Find(_T(".jpg")) != -1 || name.Find(_T(".bmp")) != -1 || name.Find(_T(".gif")) != -1 || name.Find(_T(".png")) != -1 ||  name.Find(_T(".ico")) != -1 || name.Find(_T(".mng")) != -1 || name.Find(_T(".pnm")) != -1 ) 
+			{
+				CShowDlg spic;
+				spic.name = name;
+				spic.path = path;
+				spic.num = num;
+				spic.ci = ci;
+				spic.pathArray = ReturnCStringArray();
+				spic.DoModal();
+			}
+			else
+			{
+				return;
+			}
+		}
+		
+	}
+}
+
+
+//  æµ‹è¯•æŒ‰é’®
+void CTreeShowDlg::OnBnClickedButton1()
+{
+	// TODO: åœ¨æ­¤æ·»åŠ æ§ä»¶é€šçŸ¥å¤„ç†ç¨‹åºä»£ç 
+	
+}
+
+CStringArray* CTreeShowDlg::ReturnCStringArray()
+{
+	return &pathArray;
+}
+
+
+
+
+void CTreeShowDlg::OnOpenFile1()
+{
+	// TODO: åœ¨æ­¤æ·»åŠ å‘½ä»¤å¤„ç†ç¨‹åºä»£ç 
+}
+
+//  å†å²è·¯å¾„
+void CTreeShowDlg::OnLeft1()
+{
+	// TODO: åœ¨æ­¤æ·»åŠ å‘½ä»¤å¤„ç†ç¨‹åºä»£ç 
+	if (count <= 1) {
+		return;
+	}
+	else {
+		int i = count - 1;
+		CString strpath = PathList.GetAt(i - 1);
+		showListControl(strpath);
+		count--;
+	}
+}
+void CTreeShowDlg::OnRight1()
+{
+	// TODO: åœ¨æ­¤æ·»åŠ å‘½ä»¤å¤„ç†ç¨‹åºä»£ç 
+	if (count >= PathList.GetSize()) {
+		return;
+	}
+	else {
+		int i = count;
+		CString strpath = PathList.GetAt(i);
+		showListControl(strpath);
+		count++;
+	}
+}
+
+
+//  æ˜¾ç¤º
+void CTreeShowDlg::OnSelectmenuShow()
+{
+	// TODO: åœ¨æ­¤æ·»åŠ å‘½ä»¤å¤„ç†ç¨‹åºä»£ç 
+	POSITION pos = m_list.GetFirstSelectedItemPosition();
+	int index = m_list.GetNextSelectedItem(pos);
+
+
+	//CString test;
+	//int num = m_list.GetItemCount();
+	////  æµ‹è¯•
+	////test.Format("%d", num);
+	//pathArray.SetSize(num);
+	////SetDlgItemText(IDC_EDIT1, test);
+	//for (int i = 0; i < num; i++)
+	//{
+	//	pathArray.SetAt(i, m_list.GetItemText(i, 2));
+	//}
+	//test.Format("%d", pathArray.GetSize());
+	////SetDlgItemText(IDC_EDIT1, test);
+
+
+	if (index == -1) {
+		return;
+	}
+	else {
+		CString str = m_list.GetItemText(index, 2);
+		CShowDlg spic1;
+		spic1.path = str;
+		spic1.num = num;
+		spic1.ci = index;
+		spic1.pathArray = ReturnCStringArray();
+		spic1.DoModal();
+	}
+}
+
+
+
+
+//  å¤åˆ¶
+void CTreeShowDlg::OnSelectmenuCopy()
+{
+	// TODO: åœ¨æ­¤æ·»åŠ å‘½ä»¤å¤„ç†ç¨‹åºä»£ç 
+	POSITION pos = m_list.GetFirstSelectedItemPosition();
+	int index = m_list.GetNextSelectedItem(pos); 
+	//  åˆ¤æ–­æ˜¯å¦æœ‰é€‰ä¸­Item
+	if (index == -1) {
+		return;
+	}
+	else {
+		 srcPath = m_list.GetItemText(index, 2);
+		 FLAG = FALSE;
+	}
+}
+
+//  ç²˜è´´
+void CTreeShowDlg::OnSelectmenuPaste()
+{
+	// TODO: åœ¨æ­¤æ·»åŠ å‘½ä»¤å¤„ç†ç¨‹åºä»£ç 
+	POSITION pos = m_list.GetFirstSelectedItemPosition();
+	int index = m_list.GetNextSelectedItem(pos);
+	//  åˆ¤æ–­æ˜¯å¦æœ‰é€‰ä¸­Item
+	if (index == -1 && srcPath.IsEmpty()) {
+		return;
+	}
+	else 
+	{
+		CString destPath = m_list.GetItemText(index,3);
+		if (FLAG == FALSE) 
+		{
+			CopyDirectory(srcPath, destPath);
+		}
+		else 
+		{
+			CopyDirectory(srcPath , destPath);
+			CFileFind finder;
+			BOOL b = finder.FindFile(srcPath);
+			finder.FindNextFile();
+			if (b && finder.IsDirectory() && !finder.IsDots()) 
+			{
+				system("rmdir /s/q \""+ srcPath +"\"");
+			}
+			else if(!finder.IsDirectory() && !finder.IsDots())
+			{
+				DeleteFile(srcPath);
+			}
+			else
+			{
+				return;
+			}
+		}
+		showListControl(destPath);
+	}
+}
+
+//  å¤åˆ¶æ–‡ä»¶
+BOOL CTreeShowDlg::CopyDirectory(CString strSouDir, CString strDesDir)
+{
+	//CFileFind m_sFileFind;
+	//if (strSrcPath.IsEmpty())
+	//{
+	//	OutputDebugString("æºæ–‡ä»¶åä¸ºç©ºï¼Œæ— æ³•è¿›è¡Œæ‹·è´!");
+	//	return FALSE;
+	//}
+	//if (!m_sFileFind.FindFile(strDestPath))
+	//{
+	//	CreateDirectory(strDestPath, NULL);//åˆ›å»ºç›®æ ‡æ–‡ä»¶å¤¹
+	//}
+	//CFileFind finder;
+	////CString path;
+	////path.Format("%s/*.*", strSrcPath);
+	////AfxMessageBox(path);
+	//BOOL bWorking = finder.FindFile(strSrcPath);
+	//while (bWorking)
+	//{
+	//	bWorking = finder.FindNextFile();
+	//	//AfxMessageBox(finder.GetFileName());
+	//	if (finder.IsDirectory() && !finder.IsDots())//æ˜¯æ–‡ä»¶å¤¹ è€Œä¸” åç§°ä¸å« . æˆ– ..  
+	//	{
+	//		CopyDirectory(finder.GetFilePath(), strDestPath + "\\" + finder.GetFileName());        //é€’å½’åˆ›å»ºæ–‡ä»¶å¤¹+"/"+finder.GetFileName()  
+	//	}
+	//	else
+	//	{//æ˜¯æ–‡ä»¶ï¼Œåˆ™ç›´æ¥å¤åˆ¶
+	//	//AfxMessageBox("å¤åˆ¶æ–‡ä»¶"+finder.GetFilePath());//+finder.GetFileName()  
+	//		CopyFile(finder.GetFilePath(), strDestPath + "\\" + finder.GetFileName(), FALSE);
+	//	}
+	//}
+	//
+	//return TRUE;
+
+	CFileFind file;
+	BOOL flag = file.FindFile(strSouDir);
+	file.FindNextFile();
+	if (flag && file.IsDirectory() && !file.IsDots()) {
+		CString cmd = "xcopy /cherky \"" + strSouDir + "\" \"" + strDesDir +"\\"+ file.GetFileName()+"\\\"";
+		SetDlgItemText(IDC_EDIT1, cmd);
+		system(cmd);
+	}
+	else if(flag && !file.IsDirectory() && !file.IsDots()){
+		system("copy \""+strSouDir+ "\" \"" +strDesDir+"\" /y ");
+	}
+	else {
+		return FALSE;
+	}
+	//system("xcopy /cherky \" "+strSouDir+"\" \" "+ strDesDir +"\"");
+	return TRUE;
+}
+
+//  å‰ªåˆ‡
+void CTreeShowDlg::OnSelectmenuShear()
+{
+	// TODO: åœ¨æ­¤æ·»åŠ å‘½ä»¤å¤„ç†ç¨‹åºä»£ç 
+	POSITION pos = m_list.GetFirstSelectedItemPosition();
+	int index = m_list.GetNextSelectedItem(pos);
+	//  åˆ¤æ–­æ˜¯å¦æœ‰é€‰ä¸­Itemå¹¶ä¸”
+	if (index == -1 ) {
+		return;
+	}
+	else {
+		srcPath = m_list.GetItemText(index, 2);
+		FLAG = TRUE;
+	}
+	
+}
+
+//  åˆ é™¤
+void CTreeShowDlg::OnSelectmenuDelete()
+{
+	// TODO: åœ¨æ­¤æ·»åŠ å‘½ä»¤å¤„ç†ç¨‹åºä»£ç 
+	POSITION pos = m_list.GetFirstSelectedItemPosition();
+	int index = m_list.GetNextSelectedItem(pos);
+	//  åˆ¤æ–­æ˜¯å¦æœ‰é€‰ä¸­Itemå¹¶ä¸”
+	if (index == -1) {
+		return;
+	}
+	else
+	{
+		CString src = m_list.GetItemText(index,2);
+		CString dest = m_list.GetItemText(index,3);
+		CFileFind finder;
+		BOOL b = finder.FindFile(src);
+		finder.FindNextFile();
+		if (b && finder.IsDirectory() && !finder.IsDots())
+		{
+			system("rmdir /s/q \"" + src + "\"");
+		}
+		else if (!finder.IsDirectory() && !finder.IsDots())
+		{
+			DeleteFile(src);
+		}
+		else
+		{
+			return;
+		}
+		showListControl(dest);
+	}
+	
+}
+
+//  å±æ€§

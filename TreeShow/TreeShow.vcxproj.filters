@@ -33,6 +33,12 @@
     <ClInclude Include="Resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="ShowDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PictureEx.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TreeShow.cpp">
@@ -42,6 +48,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ShowDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="PictureEx.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -66,6 +78,9 @@
       <Filter>资源文件</Filter>
     </Image>
     <Image Include="res\toolbar1.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\toolbar2.bmp">
       <Filter>资源文件</Filter>
     </Image>
   </ItemGroup>
